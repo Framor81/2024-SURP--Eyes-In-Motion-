@@ -2,7 +2,7 @@
 
 Background:
 
-It is estimated that around 7% of Americans have some form of mobility dissability. I want 
+It is estimated that around 12.1% of Americans have some form of mobility dissability. I want 
 to support and push forward research meant to support them and open a new option for them to get the support
 to live their life to the fullest.
 
