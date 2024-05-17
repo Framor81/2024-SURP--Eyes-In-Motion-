@@ -4,6 +4,8 @@ import time
 import cv2
 import dlib
 
+# BUILT AROUND THE DLIB EXAMPLE FILE
+
 # Load the pre-trained face detector
 detector = dlib.get_frontal_face_detector()
 

@@ -1,5 +1,6 @@
 import cv2
 
+# FILE TO TEST ALL CAMERAS
 
 def try_camera(index):
     cap = cv2.VideoCapture(index)
