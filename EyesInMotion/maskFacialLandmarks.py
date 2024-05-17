@@ -14,6 +14,29 @@ def getColorMask(img):
     mask = cv2.inRange(hsv, lowerBound, upperBound)
     return mask
 
+# Function to overlay landmarks
+def overlay_landmarks(frame, eye_points):
+    for (x, y) in eye_points:
+        cv2.circle(frame, (x, y), 1, (0, 0, 255), -1)
+
+# Function to crop eye region
+def crop_eye_region(frame, eye_points):
+    x_min = min(point[0] for point in eye_points)
+    y_min = min(point[1] for point in eye_points)
+    x_max = max(point[0] for point in eye_points)
+    y_max = max(point[1] for point in eye_points)
+
+    padding = 10
+    x_min = max(0, x_min - padding)
+    y_min = max(0, y_min - padding)
+    x_max = min(frame.shape[1], x_max + padding)
+    y_max = min(frame.shape[0], y_max + padding)
+
+    cropped_frame = frame[y_min:y_max, x_min:x_max]
+    resized_frame = cv2.resize(cropped_frame, (200, 100))
+    
+    return resized_frame
+
 # Load the pre-trained face detector
 detector = dlib.get_frontal_face_detector()
 
@@ -30,6 +53,7 @@ if not cap.isOpened():
 
 cv2.namedWindow('mask')  # Create a window for the mask
 cv2.namedWindow('frame')  # Create a window for the frame
+cv2.namedWindow('Eyes')   # Create a window for the cropped eyes
 
 # Give the camera some time to warm up
 time.sleep(2)
@@ -88,6 +112,20 @@ try:
 
             # Combine the result with the black background and black around eyes
             final_result = cv2.add(result, result_with_eyes)
+
+            # Get the coordinates of the left and right eye landmarks
+            left_eye_points = [(shape.part(i).x, shape.part(i).y) for i in range(36, 42)]
+            right_eye_points = [(shape.part(i).x, shape.part(i).y) for i in range(42, 48)]
+
+            # Crop and resize each eye region
+            left_eye = crop_eye_region(final_result, left_eye_points)
+            right_eye = crop_eye_region(final_result, right_eye_points)
+
+            # Concatenate the left and right eye images side by side
+            eyes_side_by_side = np.hstack((left_eye, right_eye))
+
+            # Show the concatenated eye images
+            cv2.imshow('Eyes', eyes_side_by_side)
 
             # Show the frames
             cv2.imshow("mask", black_around_eyes)  # Display the black areas near the eyes

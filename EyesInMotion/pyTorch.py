@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.optim as optim
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader, Dataset
 
 
 class SCSEBlock(nn.Module):
@@ -22,6 +24,7 @@ class SCSEBlock(nn.Module):
         chn_se = self.channel_excitation(x)
         spa_se = self.spatial_excitation(x)
         return x * chn_se + x * spa_se
+
 
 class EyeUNet(nn.Module):
     def __init__(self, in_channels=3, out_channels=1):
@@ -103,3 +106,61 @@ class EyeUNet(nn.Module):
         deep_supervised_output3 = self.deep_supervised3(dec4)
 
         return final_output, deep_supervised_output1, deep_supervised_output2, deep_supervised_output3
+
+
+# Dummy dataset for illustration purposes
+class DummyEyeDataset(Dataset):
+    def __init__(self, transform=None):
+        self.transform = transform
+
+    def __len__(self):
+        return 100  # number of samples
+
+    def __getitem__(self, idx):
+        # Dummy data
+        image = Image.fromarray(np.random.randint(0, 255, (128, 96, 3), dtype=np.uint8))
+        mask = Image.fromarray(np.random.randint(0, 2, (128, 96), dtype=np.uint8))
+
+        if self.transform:
+            image = self.transform(image)
+            mask = self.transform(mask)
+
+        return image, mask
+
+
+# Training settings
+batch_size = 2
+learning_rate = 0.001
+num_epochs = 5
+
+# Data transformation
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.5,), (0.5,))
+])
+
+# Load data
+train_dataset = DummyEyeDataset(transform=transform)
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+# Initialize model, loss function, and optimizer
+model = EyeUNet()
+criterion = nn.BCEWithLogitsLoss()
+optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+# Training loop
+for epoch in range(num_epochs):
+    model.train()
+    running_loss = 0.0
+    for images, masks in train_loader:
+        optimizer.zero_grad()
+        outputs, _, _, _ = model(images)
+        loss = criterion(outputs, masks)
+        loss.backward()
+        optimizer.step()
+        running_loss += loss.item()
+
+    print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/len(train_loader)}")
+
+# Save the trained model
+torch.save(model.state_dict(), 'eye_unet_model.pth')
