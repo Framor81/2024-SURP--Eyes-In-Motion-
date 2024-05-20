@@ -1,5 +1,3 @@
-import math
-import sys
 import time
 
 import cv2
@@ -66,6 +64,30 @@ def crop_eye_region(frame, eye_points):
     
     return resized_frame
 
+def draw_eye_crosshair(frame, eye_points):
+    """
+    Draws a crosshair on the eye region based on the given eye points.
+    
+    Parameters:
+    - frame: The image frame on which to draw the crosshair.
+    - eye_points: List of (x, y) tuples representing the coordinates of the landmarks.
+    """
+    # Calculate the midpoint of the eye
+    x_mid = sum(point[0] for point in eye_points) // len(eye_points)
+    y_mid = sum(point[1] for point in eye_points) // len(eye_points)
+    
+    # Calculate the width and height of the eye
+    x_min = min(point[0] for point in eye_points)
+    x_max = max(point[0] for point in eye_points)
+    y_min = min(point[1] for point in eye_points)
+    y_max = max(point[1] for point in eye_points)
+
+    # Draw the horizontal line
+    cv2.line(frame, (x_min, y_mid), (x_max, y_mid), (0, 255, 0), 1)
+    
+    # Draw the vertical line
+    cv2.line(frame, (x_mid, y_min), (x_mid, y_max), (0, 255, 0), 1)
+
 try:
     while True:
         # Capture frame-by-frame
@@ -92,7 +114,13 @@ try:
             overlay_landmarks(frame, left_eye_points)
             overlay_landmarks(frame, right_eye_points)
 
-            # Crop and resize each eye region
+            # Draw crosshair on left eye
+            draw_eye_crosshair(frame, left_eye_points)
+
+            # Draw crosshair on right eye
+            draw_eye_crosshair(frame, right_eye_points)
+
+            # Crop and resize each eye regiona
             left_eye = crop_eye_region(frame, left_eye_points)
             right_eye = crop_eye_region(frame, right_eye_points)
 
@@ -101,6 +129,9 @@ try:
 
             # Show the concatenated eye images
             cv2.imshow('Eyes', eyes_side_by_side)
+
+        # Show the frame with the crosshairs
+        cv2.imshow('Frame with Crosshairs', frame)
 
         # Break the loop on 'q' key press
         if cv2.waitKey(1) & 0xFF == ord('q'):
