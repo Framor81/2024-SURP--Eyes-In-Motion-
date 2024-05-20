@@ -6,6 +6,8 @@ import cv2
 import dlib
 import numpy as np
 
+# Define the fixed window size
+WINDOW_SIZE = (200, 100)
 
 def create_cam():
     detector = dlib.get_frontal_face_detector()
@@ -88,7 +90,7 @@ def calculate_bounding_box(eye_points_rotated: list[tuple], frame_shape: tuple) 
     return x_min, y_min, x_max, y_max
 
 
-def draw_eye_crosshair(frame, eye_points):
+def draw_eye_crosshair(frame, eye_points, track_blinking: bool):
     """
     Draws a crosshair on the eye region based on the given eye points.
     
@@ -107,13 +109,32 @@ def draw_eye_crosshair(frame, eye_points):
     y_max = max(point[1] for point in eye_points)
 
     # Draw the horizontal line
-    cv2.line(frame, (x_min, y_mid), (x_max, y_mid), (0, 255, 0), 1)
+    horizontal_line = cv2.line(frame, (x_min, y_mid), (x_max, y_mid), (0, 255, 0), 1)
     
     # Draw the vertical line
-    cv2.line(frame, (x_mid, y_min), (x_mid, y_max), (0, 255, 0), 1)
+    vertical_line = cv2.line(frame, (x_mid, y_min), (x_mid, y_max), (0, 255, 0), 1)
 
-# Define the fixed window size
-WINDOW_SIZE = (200, 100)
+    if(track_blinking):
+        if ((x_max-x_min)/(y_max - y_min) > 4.75):
+            print("BLINKING")
+            cv2.putText(frame, "BLINKING", (0, y_min+100), cv2.FONT_HERSHEY_SIMPLEX , 3, 200, 3)
+            return True
+        else:
+            return False
+    
+
+def cropped_points(x_min, y_min, x_max, y_max, eye_points_rotated: list[tuple]):
+    # Calculate the scaling factors
+    # Determine the ratio to scale the x and y coordinates to the window size
+    scale_x = WINDOW_SIZE[0] / (x_max - x_min)
+    scale_y = WINDOW_SIZE[1] / (y_max - y_min)
+    eye_cropped_points = []
+    for (x, y) in eye_points_rotated:
+        new_x = int((x - x_min) * scale_x)
+        new_y = int((y - y_min) * scale_y)
+        eye_cropped_points.append((new_x, new_y))
+    
+    return eye_cropped_points
 
 try:
     detector, predictor, cap = create_cam()
@@ -132,7 +153,7 @@ try:
 
         for d in dets:
             left_eye_points, left_eye_center = facial_landmarks(predictor, gray, d, 36, 42)
-            left_eye_points, right_eye_center = facial_landmarks(predictor, gray, d, 42, 48)
+            right_eye_points, right_eye_center = facial_landmarks(predictor, gray, d, 42, 48)
 
             angle, eyes_center = eye_orientation(left_eye_center, right_eye_center)
 
@@ -147,21 +168,25 @@ try:
 
                 # Resize the cropped frame to fit the fixed window size
                 resized_frame = cv2.resize(cropped_frame, WINDOW_SIZE)
-
-                # Calculate the scaling factors
-                # Determine the ratio to scale the x and y coordinates to the window size
-                scale_x = WINDOW_SIZE[0] / (x_max - x_min)
-                scale_y = WINDOW_SIZE[1] / (y_max - y_min)
+                    
+                eye_points_cropped = cropped_points(x_min, y_min, x_max, y_max, eye_points_rotated)
 
                 # Draw the landmarks on the resized frame
                 # Scale and draw each landmark on the resized frame to maintain alignment
-                for (x, y) in eye_points_rotated:
-                    cv2.circle(resized_frame, (int((x - x_min) * scale_x), int((y - y_min) * scale_y)), 2, (0, 0, 255), -1)
+                for (x, y) in eye_points_cropped:
+                    cv2.circle(resized_frame, (x, y), 2, (0, 0, 255), -1)
 
-                draw_eye_crosshair(resized_frame, eye_points_rotated)
+                draw_eye_crosshair(resized_frame, eye_points_cropped[0:6], False)
+                draw_eye_crosshair(resized_frame, eye_points_cropped[6:12], False)
 
                 # Show the resized frame
                 cv2.imshow('Eyes', resized_frame)
+
+        # Cross hair for actual image
+        draw_eye_crosshair(frame, left_eye_points, True)
+        draw_eye_crosshair(frame, right_eye_points, True)
+        cv2.imshow('Frame', frame)
+
 
         # Break the loop on 'q' key press
         if cv2.waitKey(1) & 0xFF == ord('q'):
