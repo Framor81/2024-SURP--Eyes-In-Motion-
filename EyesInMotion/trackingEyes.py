@@ -23,6 +23,55 @@ if not cap.isOpened():
 # Define the fixed window size
 WINDOW_SIZE = (200, 100)
 
+def draw_eye_crosshair(frame, eye_points, track_blinking=False, opacity=1.0, color=(0, 255, 0)):
+    """
+    Draws a crosshair on the eye region based on the given eye points.
+    
+    Parameters:
+    - frame: The image frame on which to draw the crosshair.
+    - eye_points: List of (x, y) tuples representing the coordinates of the landmarks.
+    """
+    # Calculate the midpoint of the eye
+    x_mid = sum(point[0] for point in eye_points) // len(eye_points)
+    y_mid = sum(point[1] for point in eye_points) // len(eye_points)
+    
+    # Calculate the width and height of the eye
+    x_min = min(point[0] for point in eye_points)
+    x_max = max(point[0] for point in eye_points)
+    y_min = min(point[1] for point in eye_points)
+    y_max = max(point[1] for point in eye_points)
+
+    # create overlay
+    copy = frame.copy() 
+    # Draw the horizontal line
+    horizontal_line = cv2.line(copy, (x_min, y_mid), (x_max, y_mid), color, 1)
+    
+    # Draw the vertical line
+    vertical_line = cv2.line(copy, (x_mid, y_min), (x_mid, y_max), color, 1)
+    cv2.addWeighted(copy, opacity, frame, 1 - opacity, 0, frame)
+
+
+    if(track_blinking):
+        if ((x_max - x_min) / (y_max - y_min) > 4.75):
+            print("BLINKING")
+            cv2.putText(frame, "BLINKING", (0, y_min + 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            return True
+        else:
+            return False
+
+def cropped_points(x_min, y_min, x_max, y_max, eye_points_rotated: list[tuple]):
+    # Calculate the scaling factors
+    # Determine the ratio to scale the x and y coordinates to the window size
+    scale_x = WINDOW_SIZE[0] / (x_max - x_min)
+    scale_y = WINDOW_SIZE[1] / (y_max - y_min)
+    eye_cropped_points = []
+    for (x, y) in eye_points_rotated:
+        new_x = int((x - x_min) * scale_x)
+        new_y = int((y - y_min) * scale_y)
+        eye_cropped_points.append((new_x, new_y))
+    
+    return np.array(eye_cropped_points, np.int32)
+
 try:
     while True:
         # Capture frame-by-frame
@@ -112,8 +161,13 @@ try:
 
                 # Draw the landmarks on the resized frame
                 # Scale and draw each landmark on the resized frame to maintain alignment
-                for (x, y) in eye_points_rotated:
-                    cv2.circle(resized_frame, (int((x - x_min) * scale_x), int((y - y_min) * scale_y)), 2, (0, 0, 255), -1)
+                cropped_point = cropped_points(x_min, y_min, x_max, y_max, eye_points_rotated)
+
+                for (x, y) in cropped_point:
+                    cv2.circle(resized_frame, (x,y), 2, (0, 0, 255), -1)
+
+                draw_eye_crosshair(resized_frame, cropped_point[:6], True)
+                draw_eye_crosshair(resized_frame, cropped_point[6:], True)
 
                 # Show the resized frame
                 cv2.imshow('Eyes', resized_frame)
