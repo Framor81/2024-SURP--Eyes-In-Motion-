@@ -275,7 +275,7 @@ def process_eye(liar, eye_points_cropped, focus_on_eye):
     direction = determine_gaze_direction(subregions)
 
     # Print eye tracking results
-    print(f"{focus_on_eye.capitalize()} eye midpoint: {midpoint}, Blinking: {blinking}, Black pixels: {black_pixels}, Direction: {direction}")
+    # print(f"{focus_on_eye.capitalize()} eye midpoint: {midpoint}, Blinking: {blinking}, Black pixels: {black_pixels}, Direction: {direction}")
 
     # Return blinking status and gaze direction
     return blinking, direction
@@ -321,14 +321,14 @@ try:
                     
                 eye_points_cropped = cropped_points(x_min, y_min, x_max, y_max, eye_points_rotated)
 
-                masked_eyes, ma2, liar = mask_eyes(resized_frame, eye_points_cropped[:6], eye_points_cropped[6:])
+                masked_eyes, _, white_mask = mask_eyes(resized_frame, eye_points_cropped[:6], eye_points_cropped[6:])
 
                 if focus_on in ["left", "both"]:
-                    left_blinking, left_direction = process_eye(liar, eye_points_cropped[:6], "left")
+                    left_blinking, left_direction = process_eye(white_mask, eye_points_cropped[:6], "left")
                 if focus_on in ["right", "both"]:
-                    right_blinking, right_direction = process_eye(liar, eye_points_cropped[6:], "right")
+                    right_blinking, right_direction = process_eye(white_mask, eye_points_cropped[6:], "right")
 
-                cv2.imshow('Mask Eye', liar)
+                cv2.imshow('Mask Eye', white_mask)
 
                 if focus_on in ["left", "both"]:
                     draw_eye_crosshair(resized_frame, eye_points_cropped[:6], False, 0.5)
