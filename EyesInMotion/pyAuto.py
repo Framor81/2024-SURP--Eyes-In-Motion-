@@ -10,7 +10,8 @@ class FacialControl:
         self.blinking = False
 
     def control_mouse(self):
-        return
+        if self.blinking:
+            pyautogui.moveRel(-50, 0)  # Move mouse left by 50 pixels
 
     def detect_face(self):
         try:
@@ -39,8 +40,13 @@ class FacialControl:
                     self.draw_landmarks(self.frame, right_eye_points)
                     
                     # Draw crosshair
-                    self.draw_eye_crosshair(self.frame, left_eye_points, False, 0.5)
-                    self.draw_eye_crosshair(self.frame, right_eye_points, False, 0.5)
+                    self.draw_eye_crosshair(self.frame, left_eye_points, True, 0.5)
+                    self.draw_eye_crosshair(self.frame, right_eye_points, True, 0.5)
+
+                    # Check for blinking and control mouse
+                    self.control_mouse()
+                    if (self.blinking):
+                        print("This means we move mouse!")
 
                     # Show the frame
                     cv2.imshow('Eyes', self.frame)
@@ -131,8 +137,7 @@ class FacialControl:
 
 def main():
     my_face = FacialControl()
-    my_face.detect_face() 
-    print(my_face.is_blinking())
+    my_face.detect_face()
 
 if __name__ == "__main__":
     main()
