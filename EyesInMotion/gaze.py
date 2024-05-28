@@ -280,70 +280,74 @@ def process_eye(liar, eye_points_cropped, focus_on_eye):
     # Return blinking status and gaze direction
     return blinking, direction
 
+def main():
+    try:
+        detector, predictor, cap = create_cam()
+        focus_on = "right"  # Options: "left", "right", "both"
 
-try:
-    detector, predictor, cap = create_cam()
-    focus_on = "right"  # Options: "left", "right", "both"
+        while True:
+            # Capture frame-by-frame
+            ret, frame = cap.read()
+            if not ret:
+                print("Failed to grab frame")
+                break
 
-    while True:
-        # Capture frame-by-frame
-        ret, frame = cap.read()
-        if not ret:
-            print("Failed to grab frame")
-            break
+            # Flip the frame horizontally to invert the camera
+            frame = cv2.flip(frame, 1)
 
-        # Flip the frame horizontally to invert the camera
-        frame = cv2.flip(frame, 1)
+            # Convert the frame to grayscale as HOG detector works on grayscale images
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        # Convert the frame to grayscale as HOG detector works on grayscale images
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            # Detect faces in the image
+            dets = detector(gray)
 
-        # Detect faces in the image
-        dets = detector(gray)
+            for d in dets:
+                left_eye_points, left_eye_center = facial_landmarks(predictor, gray, d, 36, 42)
+                right_eye_points, right_eye_center = facial_landmarks(predictor, gray, d, 42, 48)
 
-        for d in dets:
-            left_eye_points, left_eye_center = facial_landmarks(predictor, gray, d, 36, 42)
-            right_eye_points, right_eye_center = facial_landmarks(predictor, gray, d, 42, 48)
+                angle, eyes_center = eye_orientation(left_eye_center, right_eye_center)
 
-            angle, eyes_center = eye_orientation(left_eye_center, right_eye_center)
-
-            rotated_frame, gray_rotated, dets_rotated = orient_eyes(frame, detector, eyes_center, angle)
-            
-            for d_rotated in dets_rotated:
-                eye_points_rotated, _ = facial_landmarks(predictor, gray_rotated, d_rotated, 36, 48)
-                x_min, y_min, x_max, y_max = calculate_fixed_bounding_box(eyes_center, rotated_frame.shape, WINDOW_SIZE)
-
-                # Crop the frame to the bounding box
-                cropped_frame = rotated_frame[y_min:y_max, x_min:x_max]
-
-                # Resize the cropped frame to fit the fixed window size
-                resized_frame = cv2.resize(cropped_frame, WINDOW_SIZE)
-                    
-                eye_points_cropped = cropped_points(x_min, y_min, x_max, y_max, eye_points_rotated)
-
-                masked_eyes, _, white_mask = mask_eyes(resized_frame, eye_points_cropped[:6], eye_points_cropped[6:])
-
-                if focus_on in ["left", "both"]:
-                    left_blinking, left_direction = process_eye(white_mask, eye_points_cropped[:6], "left")
-                if focus_on in ["right", "both"]:
-                    right_blinking, right_direction = process_eye(white_mask, eye_points_cropped[6:], "right")
-
-                cv2.imshow('Mask Eye', white_mask)
-
-                if focus_on in ["left", "both"]:
-                    draw_eye_crosshair(resized_frame, eye_points_cropped[:6], False, 0.5)
-                if focus_on in ["right", "both"]:
-                    draw_eye_crosshair(resized_frame, eye_points_cropped[6:], False, 0.5)
-
-                # Show the resized frame
-                cv2.imshow('Eyes', resized_frame)
+                rotated_frame, gray_rotated, dets_rotated = orient_eyes(frame, detector, eyes_center, angle)
                 
-                time.sleep(0.1)
+                for d_rotated in dets_rotated:
+                    eye_points_rotated, _ = facial_landmarks(predictor, gray_rotated, d_rotated, 36, 48)
+                    x_min, y_min, x_max, y_max = calculate_fixed_bounding_box(eyes_center, rotated_frame.shape, WINDOW_SIZE)
 
-        # Break the loop on 'q' key press
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-finally:
-    # When everything is done, release the capture
-    cap.release()
-    cv2.destroyAllWindows()
+                    # Crop the frame to the bounding box
+                    cropped_frame = rotated_frame[y_min:y_max, x_min:x_max]
+
+                    # Resize the cropped frame to fit the fixed window size
+                    resized_frame = cv2.resize(cropped_frame, WINDOW_SIZE)
+                        
+                    eye_points_cropped = cropped_points(x_min, y_min, x_max, y_max, eye_points_rotated)
+
+                    masked_eyes, _, white_mask = mask_eyes(resized_frame, eye_points_cropped[:6], eye_points_cropped[6:])
+
+                    if focus_on in ["left", "both"]:
+                        left_blinking, left_direction = process_eye(white_mask, eye_points_cropped[:6], "left")
+                    if focus_on in ["right", "both"]:
+                        right_blinking, right_direction = process_eye(white_mask, eye_points_cropped[6:], "right")
+
+                    cv2.imshow('Mask Eye', white_mask)
+
+                    if focus_on in ["left", "both"]:
+                        draw_eye_crosshair(resized_frame, eye_points_cropped[:6], False, 0.5)
+                    if focus_on in ["right", "both"]:
+                        draw_eye_crosshair(resized_frame, eye_points_cropped[6:], False, 0.5)
+
+                    # Show the resized frame
+                    cv2.imshow('Eyes', resized_frame)
+                    
+                    time.sleep(0.1)
+
+            # Break the loop on 'q' key press
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+    finally:
+        # When everything is done, release the capture
+        cap.release()
+        cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    main()
