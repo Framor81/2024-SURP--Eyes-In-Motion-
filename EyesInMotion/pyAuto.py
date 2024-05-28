@@ -31,9 +31,14 @@ class FacialControl:
                 # Detect faces in the image
                 dets = self.detector(gray)
 
+                # 36 and 45
                 for d in dets:
                     left_eye_points, left_eye_center = self.facial_landmarks(gray, d, 36, 42)
                     right_eye_points, right_eye_center = self.facial_landmarks(gray, d, 42, 48)
+
+                    eyes_center = ((left_eye_center[0] + right_eye_center[0]) // 2, (left_eye_center[1] + right_eye_center[1]) // 2)
+
+                    self.crop_eyes(self.frame, eyes_center)
 
                     # Draw landmarks
                     self.draw_landmarks(self.frame, left_eye_points)
@@ -45,7 +50,7 @@ class FacialControl:
 
                     # Check for blinking and control mouse
                     self.control_mouse()
-                    if (self.blinking):
+                    if self.blinking:
                         print("This means we move mouse!")
 
                     # Show the frame
@@ -134,6 +139,26 @@ class FacialControl:
             self.blinking = False
             return self.blinking, (x_mid, y_mid), 0
         
+    def crop_eyes(self, frame, center):
+        half_width = 75  # Adjust this value based on how much you want to crop
+        half_height = 30  # Adjust this value based on how much you want to crop
+
+        x_min = int(max(0, center[0] - half_width))
+        y_min = int(max(0, center[1] - half_height))
+        x_max = int(min(frame.shape[1], center[0] + half_width))
+        y_max = int(min(frame.shape[0], center[1] + half_height))
+        
+        cropped_frame = frame[y_min:y_max, x_min:x_max]
+
+        cv2.imshow("FRAMEE", cropped_frame)
+
+        # Resize cropped region to fit into a smaller box (half the size)
+        target_size = (720, 250)
+        resized_cropped_frame = cv2.resize(cropped_frame, target_size)
+
+        cv2.imshow('Cropped Eyes', resized_cropped_frame)  # Display the resized cropped region
+        return x_min, y_min, x_max, y_max
+
 
 def main():
     my_face = FacialControl()

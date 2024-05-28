@@ -81,6 +81,19 @@ def calculate_fixed_bounding_box(center, frame_shape, window_size):
 
     return x_min, y_min, x_max, y_max
 
+def cropped_points(x_min, y_min, x_max, y_max, eye_points_rotated):
+    # Calculate the scaling factors
+    # Determine the ratio to scale the x and y coordinates to the window size
+    scale_x = WINDOW_SIZE[0] / (x_max - x_min)
+    scale_y = WINDOW_SIZE[1] / (y_max - y_min)
+    eye_cropped_points = []
+    for (x, y) in eye_points_rotated:
+        new_x = int((x - x_min) * scale_x)
+        new_y = int((y - y_min) * scale_y)
+        eye_cropped_points.append((new_x, new_y))
+    
+    return np.array(eye_cropped_points, np.int32)
+
 def draw_eye_crosshair(frame, eye_points, track_blinking=False, opacity=1.0, color=(0, 255, 0)):
     """
     Draws a crosshair on the eye region based on the given eye points.
@@ -118,19 +131,6 @@ def draw_eye_crosshair(frame, eye_points, track_blinking=False, opacity=1.0, col
             return False, (x_mid, y_mid), eye_lid_opening
     else:
         return False, (x_mid, y_mid), 0
-
-def cropped_points(x_min, y_min, x_max, y_max, eye_points_rotated):
-    # Calculate the scaling factors
-    # Determine the ratio to scale the x and y coordinates to the window size
-    scale_x = WINDOW_SIZE[0] / (x_max - x_min)
-    scale_y = WINDOW_SIZE[1] / (y_max - y_min)
-    eye_cropped_points = []
-    for (x, y) in eye_points_rotated:
-        new_x = int((x - x_min) * scale_x)
-        new_y = int((y - y_min) * scale_y)
-        eye_cropped_points.append((new_x, new_y))
-    
-    return np.array(eye_cropped_points, np.int32)
 
 def mask_eyes(frame, left_eye_points, right_eye_points):
     lowerBound = np.array([0, 0, 0])
