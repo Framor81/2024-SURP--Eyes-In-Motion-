@@ -14,6 +14,7 @@ class FacialControl:
         self.detector, self.predictor, self.cap = FacialControl.create_camera()
         self.blinking = False
         self.gaze_direction = "center"
+        self.last_direction = "center"
 
     def control_mouse(self):
         if self.blinking:
@@ -80,6 +81,8 @@ class FacialControl:
 
                         self.blinking = left_blinking or right_blinking
 
+                        self.check_direction_change()  # Check for direction change
+
                         cv2.imshow('Mask Eye', white_mask)
 
                         self.draw_eye_crosshair(resized_frame, eye_points_cropped[:6], False, 0.5)
@@ -99,6 +102,14 @@ class FacialControl:
             # When everything is done, release the capture
             self.cap.release()
             cv2.destroyAllWindows()
+
+    def check_direction_change(self):
+        if self.gaze_direction != self.last_direction:
+            self.test_function(self.gaze_direction)
+            self.last_direction = self.gaze_direction
+
+    def test_function(self, direction):
+        print(f"Changed to face {direction}")
 
     @staticmethod
     def create_camera():
@@ -228,7 +239,7 @@ class FacialControl:
 
     def mask_eyes(self, frame, left_eye_points, right_eye_points):
         lowerBound = np.array([0, 0, 0])
-        upperBound = np.array([180, 255, 50])
+        upperBound = np.array([190, 255, 60])
 
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, lowerBound, upperBound)
@@ -327,11 +338,12 @@ class FacialControl:
         bottom = subregion_counts["bottom"]
         
         # Consider center if it's not dominated by any specific direction
-        center_threshold = 1.5  # Adjust this threshold as needed
+        center_threshold = 1.12  # Adjust this threshold as needed
+        left_threshold = 1.05
 
-        if left > center_threshold * right and left > center_threshold * top and left > center_threshold * bottom:
+        if  left_threshold * left > center_threshold * right and left_threshold * left > center_threshold * top and left > center_threshold * bottom:
             return "left"
-        elif right > center_threshold * left and right > center_threshold * top and right > center_threshold * bottom:
+        elif left_threshold * right > center_threshold * left and left_threshold * right > center_threshold * top and right > center_threshold * bottom:
             return "right"
         elif top > center_threshold * bottom and top > center_threshold * left and top > center_threshold * right:
             return "top"
@@ -369,7 +381,7 @@ class FacialControl:
         direction = self.determine_gaze_direction(subregions)
 
         # Print eye tracking results
-        print(f"{focus_on_eye.capitalize()} eye midpoint: {midpoint}, Blinking: {blinking}, Black pixels: {black_pixels}, Direction: {direction}")
+        # print(f"{focus_on_eye.capitalize()} eye midpoint: {midpoint}, Blinking: {blinking}, Black pixels: {black_pixels}, Direction: {direction}")
 
         # Return blinking status and gaze direction
         return blinking, direction

@@ -134,7 +134,7 @@ def draw_eye_crosshair(frame, eye_points, track_blinking=False, opacity=1.0, col
 
 def mask_eyes(frame, left_eye_points, right_eye_points):
     lowerBound = np.array([0, 0, 0])
-    upperBound = np.array([180, 255, 50])
+    upperBound = np.array([190, 255, 60])
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lowerBound, upperBound)
@@ -233,11 +233,12 @@ def determine_gaze_direction(subregion_counts):
     bottom = subregion_counts["bottom"]
     
     # Consider center if it's not dominated by any specific direction
-    center_threshold = 1.5  # Adjust this threshold as needed
+    center_threshold = 1.12  # Adjust this threshold as needed
+    left_threshold = 1.05
 
-    if left > center_threshold * right and left > center_threshold * top and left > center_threshold * bottom:
+    if  left_threshold * left > center_threshold * right and left_threshold * left > center_threshold * top and left > center_threshold * bottom:
         return "left"
-    elif right > center_threshold * left and right > center_threshold * top and right > center_threshold * bottom:
+    elif left_threshold * right > center_threshold * left and left_threshold * right > center_threshold * top and right > center_threshold * bottom:
         return "right"
     elif top > center_threshold * bottom and top > center_threshold * left and top > center_threshold * right:
         return "top"
@@ -275,7 +276,7 @@ def process_eye(liar, eye_points_cropped, focus_on_eye):
     direction = determine_gaze_direction(subregions)
 
     # Print eye tracking results
-    # print(f"{focus_on_eye.capitalize()} eye midpoint: {midpoint}, Blinking: {blinking}, Black pixels: {black_pixels}, Direction: {direction}")
+    print(f"{focus_on_eye.capitalize()} eye midpoint: {midpoint}, Blinking: {blinking}, Black pixels: {black_pixels}, Direction: {direction}")
 
     # Return blinking status and gaze direction
     return blinking, direction
@@ -336,6 +337,7 @@ def main():
                         draw_eye_crosshair(resized_frame, eye_points_cropped[6:], False, 0.5)
 
                     # Show the resized frame
+                    cv2.imshow("Frame", frame)
                     cv2.imshow('Eyes', resized_frame)
                     
                     time.sleep(0.1)
