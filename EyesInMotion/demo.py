@@ -37,6 +37,8 @@ class FacialControl:
                     print("Failed to grab frame")
                     break
 
+                self.frame = cv2.resize(self.frame, (720, 560))
+
                 # Flip the frame horizontally to invert the camera
                 self.frame = cv2.flip(self.frame, 1)
 
