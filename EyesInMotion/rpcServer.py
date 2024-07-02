@@ -8,8 +8,6 @@ def whoAmI(name: str, age: int):
     return "My name is " + name + " and I am " + str(age) + " years old."
 
 def open_Camera():
-    detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor(r'shape_predictor_68_face_landmarks.dat')
     cap = cv2.VideoCapture(0)
     
     # Exit program if we can't open the camera

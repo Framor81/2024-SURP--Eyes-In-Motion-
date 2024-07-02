@@ -7,7 +7,7 @@ import numpy as np
 
 
 def main():
-    server = ServerProxy('http://<server-ip>:8000')
+    server = ServerProxy('http://10.130.9.52:8000')
     cv2.namedWindow("Live Feed", cv2.WINDOW_AUTOSIZE)
 
     while True:
